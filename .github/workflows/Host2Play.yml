@@ -14,6 +14,10 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
+        with:
+          repository: cokear/host2
+          token: ${{ secrets.MY_GITHUB_TOKEN }}
+          path: .
 
       - name: Install System Dependencies
         run: |
@@ -37,7 +41,6 @@ jobs:
         id: host2play_run
         continue-on-error: true
         env:
-          # --- 保留：发报告用的 Bot 信息和 AI 识图信息 ---
           TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
           MY_CHAT_ID: ${{ secrets.MY_CHAT_ID }}
           AI_API_KEY: ${{ secrets.AI_API_KEY }}
@@ -50,7 +53,6 @@ jobs:
           
         run: python host2play.py  
 
-      # --- 【精准新增】：如果脚本产生了新的 SSI 或日志，物理推送到对方仓库 ---
       - name: Push Generated SSI and Logs
         if: always()
         run: |
