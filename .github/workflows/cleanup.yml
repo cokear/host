@@ -1,28 +1,44 @@
-name: Cleanup Old Runs
-
+name: Cleanup Actions History
 on:
   workflow_dispatch:
     inputs:
-      retain_days:
-        description: 'Days to retain'
+      repository:
+        description: Target repository, format owner/repo
         required: true
-        default: '1'
-      keep_minimum_runs:
-        description: 'Minimum runs to keep'
+        type: string
+      workflow_name:
+        description: Workflow name to clean, for example CI
         required: true
-        default: '5'
-
+        type: string
 jobs:
-  del_runs:
+  cleanup:
     runs-on: ubuntu-latest
-    permissions:
-      actions: write
-      contents: read
     steps:
-      - name: Delete workflow runs
-        uses: Mattraks/delete-workflow-runs@v2
-        with:
-          token: ${{ github.token }}
-          repository: ${{ github.repository }}
-          retain_days: ${{ inputs.retain_days }}
-          keep_minimum_runs: ${{ inputs.keep_minimum_runs }}
+      - name: Delete old workflow runs
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+          REPOSITORY: ${{ github.event.inputs.repository }}
+          WORKFLOW_NAME: ${{ github.event.inputs.workflow_name }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          workflow_id="$(gh api \
+            "repos/${REPOSITORY}/actions/workflows" \
+            --jq ".workflows[] | select(.name == \"${WORKFLOW_NAME}\") | .id" | head -n 1)"
+          if [ -z "${workflow_id}" ]; then
+            echo "Workflow not found: ${WORKFLOW_NAME}"
+            exit 1
+          fi
+          run_ids="$(gh api \
+            "repos/${REPOSITORY}/actions/workflows/${workflow_id}/runs?per_page=100" \
+            --jq '.workflow_runs | sort_by(.created_at) | reverse | .[1:] | .[].id')"
+          if [ -z "${run_ids}" ]; then
+            echo "No old workflow runs to delete."
+            exit 0
+          fi
+          for run_id in ${run_ids}; do
+            echo "Deleting run ${run_id}"
+            gh api \
+              --method DELETE \
+              "repos/${REPOSITORY}/actions/runs/${run_id}"
+          done
