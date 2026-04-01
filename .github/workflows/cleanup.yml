@@ -1,44 +1,34 @@
 name: Cleanup Actions History
 on:
   workflow_dispatch:
-    inputs:
-      repository:
-        description: Target repository, format owner/repo
-        required: true
-        type: string
-      workflow_name:
-        description: Workflow name to clean, for example CI
-        required: true
-        type: string
+permissions:
+  actions: write
+  contents: read
 jobs:
   cleanup:
     runs-on: ubuntu-latest
     steps:
       - name: Delete old workflow runs
         env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-          REPOSITORY: ${{ github.event.inputs.repository }}
-          WORKFLOW_NAME: ${{ github.event.inputs.workflow_name }}
+          GH_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          REPOSITORY: ${{ github.repository }}
         shell: bash
         run: |
           set -euo pipefail
-          workflow_id="$(gh api \
-            "repos/${REPOSITORY}/actions/workflows" \
-            --jq ".workflows[] | select(.name == \"${WORKFLOW_NAME}\") | .id" | head -n 1)"
-          if [ -z "${workflow_id}" ]; then
-            echo "Workflow not found: ${WORKFLOW_NAME}"
-            exit 1
-          fi
-          run_ids="$(gh api \
-            "repos/${REPOSITORY}/actions/workflows/${workflow_id}/runs?per_page=100" \
-            --jq '.workflow_runs | sort_by(.created_at) | reverse | .[1:] | .[].id')"
-          if [ -z "${run_ids}" ]; then
-            echo "No old workflow runs to delete."
-            exit 0
-          fi
-          for run_id in ${run_ids}; do
-            echo "Deleting run ${run_id}"
-            gh api \
-              --method DELETE \
-              "repos/${REPOSITORY}/actions/runs/${run_id}"
+          workflows="$(gh api "repos/${REPOSITORY}/actions/workflows" --jq '.workflows[].id')"
+          for workflow_id in ${workflows}; do
+            echo "Processing workflow ${workflow_id}"
+            old_runs="$(gh api \
+              "repos/${REPOSITORY}/actions/workflows/${workflow_id}/runs?per_page=100" \
+              --jq '.workflow_runs | sort_by(.created_at) | reverse | .[1:] | .[].id')"
+            if [ -z "${old_runs}" ]; then
+              echo "No old runs to delete for workflow ${workflow_id}"
+              continue
+            fi
+            for run_id in ${old_runs}; do
+              echo "Deleting run ${run_id}"
+              gh api \
+                --method DELETE \
+                "repos/${REPOSITORY}/actions/runs/${run_id}"
+            done
           done
