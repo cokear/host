@@ -2,7 +2,7 @@ name: Host2Play Auto Renew Logic
 
 on:
   repository_dispatch:
-    types: [host]
+    types: [hos]
   workflow_dispatch:
 
 jobs:
