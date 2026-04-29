@@ -25,17 +25,17 @@
     "path": "/",
     "sameSite": "Lax",
     "secure": false,
-    "value": "EVJzZjbwCKml6I29VLNeuGa6"
+    "value": "x29L8YXFEHua0mCtxSGiCA-Z"
   },
   {
     "domain": ".host2play.gratis",
-    "expiry": 1808987170,
+    "expiry": 1809009008,
     "httpOnly": true,
     "name": "cf_clearance",
     "path": "/",
     "sameSite": "None",
     "secure": true,
-    "value": "427lqLglN.K_K2Sj0NDzRhRpAJyah08pF7JjajQAZOw-1777451170-1.2.1.1-jp9kIlQJuAhlIMFvff7_4vkvcCrSunI32SQzES8dbSbjlrtYf8SgVobu4GJrFPdK0LgtGF6YjdZEqyueKTKbuLoDbTywACHrOU5lD4hGKTEp8iGMbVCFWdvfzYbwhUSbMsPLoTvBLkYTSeWMcTqTJyr9qYb9jWo2Gkx5M4IRo2._FmhgVFa1Vg2F92Jj86ZpJbx8yVMTswXI07oEQ.Zd4sZGpQMQHTJYAIAI.6YC6Z5WQmQaunO_u4F7Xw7QyrYqvR47QEwqM7xozvy_.3aygtnfh71PkQ82neMufJT0aCXlj_pN0Ko5jiHfbUMp0NdIc0m8veXRExgY.9hiZTsD8Q"
+    "value": "fkwqZmLjep7Df7UBWQ8eisH4CFv2L_arf6As5Y8KnxU-1777473008-1.2.1.1-wHBeDF3fzylSKXpm0KXXgi32oYSEUWx.trn.Ov1fUbynMWBKKK_dHCM9omQ3pGmeeXGF9skFjzAYg_MzFE4TBo72gU3QQsxpjVlF22m9aHNBZcsc.UQ_68Fig.xN0YVx4foBqcgcfT43wWyFZxwKz8jD2yOJwbHo9fWOJeKtltV1n54hIDqMfnpyGVkny.vx08LAA0x2WFgVf5CnBstNc0AU7tv5dvE0ivUG0bIV6UXqZc1p0uJ5IbcErs2.Rl2p3Rgwb54YDvvScpzpA8x3L4bgvfs6v29hs2bHqR6VL8rZvhd.o97VevY0975iM9Tfb.VcDGUR6Tk8RzskDgQvIg"
   },
   {
     "domain": ".host2play.gratis",
@@ -45,11 +45,11 @@
     "path": "/",
     "sameSite": "None",
     "secure": true,
-    "value": "ID=0f358e3a6d0c4ef4:T=1774180547:RT=1777451172:S=AA-AfjYtkNsNVFq3XlmnhsY8YkQH"
+    "value": "ID=0f358e3a6d0c4ef4:T=1774180547:RT=1777473011:S=AA-AfjYtkNsNVFq3XlmnhsY8YkQH"
   },
   {
     "domain": ".host2play.gratis",
-    "expiry": 1811147334,
+    "expiry": 1811169011,
     "httpOnly": false,
     "name": "FCCDCF",
     "path": "/",
@@ -68,12 +68,12 @@
   },
   {
     "domain": ".host2play.gratis",
-    "expiry": 1808987335,
+    "expiry": 1809009012,
     "httpOnly": false,
     "name": "FCNEC",
     "path": "/",
     "sameSite": "Lax",
     "secure": false,
-    "value": "%5B%5B%22AKsRol_7CR4P4PRtIc_hTtqlpKvhL4TSJauxI9AM7JETUuxWWzS2xLyOBHs7JPRRgYt3k0_dECffl9oMTZdfL1_8xGMp3xtZP-3c4-zjVqlOVIdHah7oacT3LfIMkTyMOplG-e0lKdebwXHv-Qj7-uLwcqmrUmJ0KQ%3D%3D%22%5D%5D"
+    "value": "%5B%5B%22AKsRol8cWPoINQBzFmpMlUOH7gb2J49KcYrfqS3SWx81ZAlUiMisZZGcHMZ5s_LW62mvokff05ERgIVTK8g7jLe9ah6qZWvSF-cO4zlN0hh1LsHpUuM4m33aBGWqO-E-0TCoVBc9v4yAzWTpP3QAqtcjHvjadTjjuw%3D%3D%22%5D%5D"
   }
 ]
