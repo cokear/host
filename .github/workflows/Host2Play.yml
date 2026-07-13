@@ -16,6 +16,7 @@ jobs:
           repository: ${{ secrets.PRIVATE_REPO }}   # 格式: 用户名/私库名
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           path: scripts
+          ref: 'main'
 
       - uses: actions/setup-python@v5
         with:
