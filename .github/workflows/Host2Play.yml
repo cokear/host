@@ -1,85 +1,82 @@
-name: Host2Play Auto Renew Logic
+name: Host2Play Auto Renew (Public)
 
 on:
-  repository_dispatch:
-    types: [hos]
-  workflow_dispatch:
+  schedule:
+    - cron: "0 */12 * * *"   # 每 12 小时；按需调整
+  workflow_dispatch: {}
 
 jobs:
-  host2play-renewal:
+  renew:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
-      
+    timeout-minutes: 30
     steps:
-      - name: Checkout Repository
+      - name: 拉取私库脚本
         uses: actions/checkout@v4
         with:
-          repository: cokear/host2
-          token: ${{ secrets.MY_GITHUB_TOKEN }}
-          path: .
+          repository: ${{ secrets.PRIVATE_REPO }}   # 格式: 用户名/私库名
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          path: scripts
 
-      - name: Install System Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y xvfb libnss3 libatk1.0-0 libatk-bridge2.0-0 libcups2 libdrm2 \
-          libxkbcommon0 libxcomposite1 libxdamage1 libxrandr2 libgbm1 libasound2t64 \
-          libpango-1.0-0 libcairo2 libgl1 libglib2.0-0
-
-      - name: Set up Python
-        uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
-          python-version: '3.10'
+          python-version: "3.11"
 
-      - name: Install Python Requirements
+      - name: Install Google Chrome
         run: |
-          pip install --upgrade pip
-          pip install seleniumbase requests loguru
-          pip install pyrogram tgcrypto
+          wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get update
+          sudo apt-get install -y ./google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y xvfb python3-tk python3-dev
 
-      - name: Run Host2Play Task
-        id: host2play_run
-        continue-on-error: true
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r scripts/requirements.txt
+
+      - name: 启用 WARP 代理
+        run: |
+          curl -fsSL https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+          echo "deb [signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ jammy main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
+          sudo apt-get update
+          sudo apt-get install -y cloudflare-warp
+          sudo warp-cli --accept-tos registration new
+          sudo warp-cli --accept-tos mode proxy
+          sudo warp-cli --accept-tos connect
+          sleep 5
+
+      - name: Restore UC Profile Cache
+        uses: actions/cache/restore@v4
+        with:
+          path: scripts/uc_profile/
+          key: uc-profile-${{ github.run_id }}
+          restore-keys: |
+            uc-profile-
+
+      - name: Run renew
         env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          MY_CHAT_ID: ${{ secrets.MY_CHAT_ID }}
-          AI_API_KEY: ${{ secrets.AI_API_KEY }}
-          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
-          AI_MODEL_NAME: ${{ secrets.AI_MODEL_NAME }}
-          HOSTUUID: ${{ secrets.HOSTUUID }}
-          MY_GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-          GITHUB_REPOSITORY: ${{ github.repository }}
-          PYTHONPATH: ${{ github.workspace }}
-          
-        run: python host2play.py  
+          PYTHONUNBUFFERED: "1"
+          RENEW_URLS:      ${{ secrets.RENEW_URLS }}
+          VISION_BASE_URL: ${{ secrets.VISION_BASE_URL }}
+          VISION_API_KEY:  ${{ secrets.VISION_API_KEY }}
+          VISION_MODEL:    ${{ secrets.VISION_MODEL }}
+          TG_BOT_TOKEN:    ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_ID:      ${{ secrets.TG_CHAT_ID }}
+        run: |
+          Xvfb :99 -screen 0 1920x1080x24 > /dev/null 2>&1 &
+          export DISPLAY=:99
+          cd scripts && python -u renew.py
 
-      - name: Push Generated SSI and Logs
+      - name: Save UC Profile Cache
+        if: success()
+        uses: actions/cache/save@v4
+        with:
+          path: scripts/uc_profile/
+          key: uc-profile-${{ github.run_id }}
+
+      - name: Upload screenshots
         if: always()
-        run: |
-          git config --global user.name "SecurityBot"
-          git config --global user.email "bot@github.com"
-          git add play/
-          git commit -m "chore: sync host2play runtime data [skip ci]" || echo "No changes"
-          git push origin ${{ github.ref_name }} || echo "Push failed"
-
-      - name: Change IP and Restart Workflow
-        if: steps.host2play_run.outcome == 'failure' && github.run_attempt < 6
-        run: |
-          echo "检测到任务失败，准备换 IP 重试（当前第 ${{ github.run_attempt }} 次）"
-          
-          WORKFLOW_NAME="Host2Play Auto Renew Logic"
-          
-          WORKFLOW_ID=$(curl -s -H "Authorization: token ${{ secrets.MY_GITHUB_TOKEN }}" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/workflows" \
-            | jq -r ".workflows[] | select(.name==\"$WORKFLOW_NAME\") | .id")
-
-          echo "目标工作流 ID: $WORKFLOW_ID"
-
-          curl -L -i -X POST \
-            -H "Authorization: token ${{ secrets.MY_GITHUB_TOKEN }}" \
-            -H "Accept: application/vnd.github.v3+json" \
-            -H "X-GitHub-Api-Version: 2022-11-28" \
-            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/$WORKFLOW_ID/dispatches" \
-            -d '{"ref":"${{ github.ref_name }}"}'
-          
-          exit 1
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: scripts/output/screenshots/
+          if-no-files-found: ignore
