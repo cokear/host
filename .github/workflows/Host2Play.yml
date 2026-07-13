@@ -10,14 +10,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: 拉取私库脚本
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ secrets.PRIVATE_REPO }}   # 格式: 用户名/私库名
-          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
-          path: scripts
-          ref: 'main'
-          persist-credentials: false
+      - name: 纯净 Git 克隆私库
+        run: |
+          git clone --depth=1 --branch main https://${{ secrets.PRIVATE_REPO_TOKEN }}@://github.com{{ secrets.PRIVATE_REPO }}.git scripts
 
       - uses: actions/setup-python@v5
         with:
