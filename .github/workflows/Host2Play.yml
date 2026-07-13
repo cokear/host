@@ -17,6 +17,7 @@ jobs:
           token: ${{ secrets.PRIVATE_REPO_TOKEN }}
           path: scripts
           ref: 'main'
+          persist-credentials: false
 
       - uses: actions/setup-python@v5
         with:
