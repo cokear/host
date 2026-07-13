@@ -10,9 +10,13 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
-      - name: 纯净 Git 克隆私库
-        run: |
-          git clone --depth=1 --branch main https://${{ secrets.PRIVATE_REPO_TOKEN }}@://github.com{{ secrets.PRIVATE_REPO }}.git scripts
+      - name: 克隆私库
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ secrets.PRIVATE_REPO }}   # owner/repo 格式
+          token: ${{ secrets.PRIVATE_REPO_TOKEN }}
+          ref: main
+          path: scripts
 
 
       - uses: actions/setup-python@v5
