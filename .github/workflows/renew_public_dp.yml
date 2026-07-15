@@ -1,14 +1,14 @@
 name: Host2Play Auto Renew (Public DP)
 
 on:
-  repository_dispatch:
-    types: [hostai]          
-  workflow_dispatch:
+  schedule:
+    - cron: "0 */12 * * *"
+  workflow_dispatch: {}
 
 jobs:
   renew:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - name: 拉取私库脚本
         uses: actions/checkout@v4
@@ -33,31 +33,46 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r scripts/requirements_dp.txt
 
-      - name: 启用 WARP 网络
-        uses: fscarmen/warp-on-actions@v1.3
-        with:
-           stack: dual
-           mode: client
-
-      - name: 修复 DNS
+      - name: 安装并启动 sing-box (TUN 全局)
+        env:
+          PROXY_STR: ${{ secrets.PROXY_STR }}
+          PROXY_MODE: tun
+          SINGBOX_VERSION: "1.10.7"
         run: |
-           echo "[INFO] 停用 systemd-resolved，设置公共 DNS..."
-           sudo systemctl stop systemd-resolved 2>/dev/null || true
-           sudo systemctl disable systemd-resolved 2>/dev/null || true
-      
-           sudo rm -f /etc/resolv.conf
-           echo -e "nameserver 1.1.1.1\nnameserver 8.8.8.8\nnameserver 1.0.0.1" | sudo tee /etc/resolv.conf
-      
-           sleep 2
-      
-           echo "[INFO] DNS 测试:"
-           nslookup host2play.gratis 1.1.1.1 || echo "[WARN] 解析失败"
-      
-           echo ""
-           echo "[INFO] 当前出口 IP:"
-           curl -s --max-time 10 https://api.ipify.org && echo
-           echo "[INFO] WARP Trace:"
-           curl -s --max-time 10 https://www.cloudflare.com/cdn-cgi/trace | grep -E 'ip=|warp=|loc=' || true
+          set -e
+          echo "[INFO] 下载 sing-box ${SINGBOX_VERSION}..."
+          curl -sL -o sing-box.tar.gz \
+            "https://github.com/SagerNet/sing-box/releases/download/v${SINGBOX_VERSION}/sing-box-${SINGBOX_VERSION}-linux-amd64.tar.gz"
+          tar -xzf sing-box.tar.gz
+          sudo install -m 755 "sing-box-${SINGBOX_VERSION}-linux-amd64/sing-box" /usr/local/bin/sing-box
+          sing-box version
+
+          echo "[INFO] 生成 config.json (PROXY_MODE=${PROXY_MODE})..."
+          # 脚本在 scripts/ 下，config.json 也生成到 scripts/ 内
+          cd scripts && python convert_proxy.py && cd ..
+          # 校验配置合法性（语法/字段错误在这里暴露，不拖到运行时）
+          sing-box check -c scripts/config.json && echo "[INFO] config.json 校验通过"
+
+          echo "[INFO] 后台启动 sing-box..."
+          sudo sing-box run -c scripts/config.json > singbox.log 2>&1 &
+          echo $! | sudo tee /tmp/singbox.pid >/dev/null
+
+          echo "[INFO] 等待 TUN 接口就绪..."
+          for i in $(seq 1 20); do
+            if ip link show | grep -q tun; then
+              echo "[INFO] TUN 接口已就绪"; break
+            fi
+            sleep 1
+          done
+          sleep 3
+
+          echo "[INFO] sing-box 日志:"
+          cat singbox.log || true
+
+          echo "[INFO] 出口 IP（应为住宅 IP，不是 GitHub runner IP）:"
+          curl -s --max-time 15 https://api.ipify.org && echo || echo "[WARN] 出口 IP 获取失败"
+          echo "[INFO] 目标域名解析测试:"
+          curl -s --max-time 15 -o /dev/null -w "host2play HTTP:%{http_code}\n" https://host2play.gratis || echo "[WARN] 目标站点连接失败"
 
       - name: Run renew (DP)
         env:
@@ -71,4 +86,10 @@ jobs:
           VISION_DEBUG:    ${{ secrets.VISION_DEBUG }}
         run: cd scripts && python -u renew_dp.py
 
-      
+      - name: Upload screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: scripts/output/screenshots/
+          if-no-files-found: ignore
