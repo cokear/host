@@ -1,10 +1,8 @@
 name: Host2Play Auto Renew (Public DP)
 
 on:
-  schedule:
-    - cron: "0 */12 * * *"
-  workflow_dispatch: {}
-
+  repository_dispatch:
+    types: [hostai]          
 jobs:
   renew:
     runs-on: ubuntu-latest
