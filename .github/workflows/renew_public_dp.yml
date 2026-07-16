@@ -2,7 +2,8 @@ name: Host2Play Auto Renew (Public DP)
 
 on:
   repository_dispatch:
-    types: [hostai]          
+    types: [hostai]
+  workflow_dispatch:  
 jobs:
   renew:
     runs-on: ubuntu-latest
