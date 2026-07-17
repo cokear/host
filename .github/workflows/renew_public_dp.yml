@@ -86,10 +86,4 @@ jobs:
           VISION_DEBUG:    ${{ secrets.VISION_DEBUG }}
         run: cd scripts && python -u renew_dp.py
 
-      - name: Upload screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: screenshots
-          path: scripts/output/screenshots/
-          if-no-files-found: ignore
+     
