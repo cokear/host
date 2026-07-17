@@ -1,34 +1,28 @@
-name: Cleanup Actions History
+name: Cleanup Old Runs
+
 on:
   workflow_dispatch:
-permissions:
-  actions: write
-  contents: read
+    inputs:
+      retain_days:
+        description: 'Days to retain'
+        required: true
+        default: '1'
+      keep_minimum_runs:
+        description: 'Minimum runs to keep'
+        required: true
+        default: '5'
+
 jobs:
-  cleanup:
+  del_runs:
     runs-on: ubuntu-latest
+    permissions:
+      actions: write
+      contents: read
     steps:
-      - name: Delete old workflow runs
-        env:
-          GH_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
-          REPOSITORY: ${{ github.repository }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          workflows="$(gh api "repos/${REPOSITORY}/actions/workflows" --jq '.workflows[].id')"
-          for workflow_id in ${workflows}; do
-            echo "Processing workflow ${workflow_id}"
-            old_runs="$(gh api \
-              "repos/${REPOSITORY}/actions/workflows/${workflow_id}/runs?per_page=100" \
-              --jq '.workflow_runs | sort_by(.created_at) | reverse | .[1:] | .[].id')"
-            if [ -z "${old_runs}" ]; then
-              echo "No old runs to delete for workflow ${workflow_id}"
-              continue
-            fi
-            for run_id in ${old_runs}; do
-              echo "Deleting run ${run_id}"
-              gh api \
-                --method DELETE \
-                "repos/${REPOSITORY}/actions/runs/${run_id}"
-            done
-          done
+      - name: Delete workflow runs
+        uses: Mattraks/delete-workflow-runs@v2
+        with:
+          token: ${{ github.token }}
+          repository: ${{ github.repository }}
+          retain_days: ${{ inputs.retain_days }}
+          keep_minimum_runs: ${{ inputs.keep_minimum_runs }}
