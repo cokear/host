@@ -3,6 +3,7 @@ name: Host2Play Auto Renew (Public DP)
 on:
   repository_dispatch:
     types: [hostai]
+  workflow_dispatch:  
   
 jobs:
   renew:
